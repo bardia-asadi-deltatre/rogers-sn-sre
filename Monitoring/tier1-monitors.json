@@ -1,0 +1,211 @@
+[
+  {
+    "_comment": "MONITOR 1 — CPU Credit Balance Exhaustion",
+    "_setup_note": "Targets burstable T-type EC2 instances. Credits < 100 means you're burning through burst headroom.",
+    "name": "[Rogers VI] EC2 CPU Credit Balance Low",
+    "type": "metric alert",
+    "query": "min(last_10m):min:aws.ec2.cpucredit_balance{customer:rogers,env:production} by {name} < 100",
+    "message": "{{#is_warning}}⚠️ CPU credit balance for {{name.name}} is getting low ({{value}} credits). Monitor closely — if credits hit zero, CPU will be hard-capped.{{/is_warning}}\n{{#is_alert}}🚨 CPU credit balance for {{name.name}} has dropped critically low ({{value}} credits). Instance CPU is likely throttled. Upsize or switch to non-burstable instance type.{{/is_alert}}\n\n@slack-rogers-vi-alerts",
+    "tags": ["env:production", "customer:rogers", "team:liveops", "tier:1"],
+    "options": {
+      "thresholds": {
+        "warning": 200,
+        "critical": 100
+      },
+      "notify_no_data": false,
+      "require_full_window": false,
+      "evaluation_delay": 60,
+      "new_group_delay": 300,
+      "include_tags": true,
+      "notify_audit": false
+    }
+  },
+
+  {
+    "_comment": "MONITOR 2 — Pod Restart Spike",
+    "_setup_note": "Uses change() to detect a sudden increase in restarts rather than a raw count (which grows forever). Tune the threshold based on your baseline restart count.",
+    "name": "[Rogers VI] Pod Restart Spike Detected",
+    "type": "metric alert",
+    "query": "change(max(last_10m),last_30m):max:kubernetes.containers.restarts{aws_account:321254714924,kube_namespace:vi} by {pod_name} > 3",
+    "message": "{{#is_warning}}⚠️ Pod {{pod_name.name}} has restarted {{value}} times in the last 10 minutes. May be a transient issue — watch closely.{{/is_warning}}\n{{#is_alert}}🚨 Pod {{pod_name.name}} is crash-looping ({{value}} restarts in 10m). Check pod logs immediately:\n`kubectl logs {{pod_name.name}} -n vi --previous`{{/is_alert}}\n\n@slack-rogers-vi-alerts @pagerduty-rogers-vi",
+    "tags": ["env:production", "customer:rogers", "team:liveops", "tier:1"],
+    "options": {
+      "thresholds": {
+        "warning": 2,
+        "critical": 3
+      },
+      "notify_no_data": false,
+      "require_full_window": false,
+      "new_group_delay": 60,
+      "include_tags": true,
+      "notify_audit": false
+    }
+  },
+
+  {
+    "_comment": "MONITOR 3 — VM Disk Usage",
+    "_setup_note": "Mirrors the formula already in your dashboard widget. Alerts before disk full kills MongoDB writes or log rotation.",
+    "name": "[Rogers VI] VM Disk Usage High",
+    "type": "metric alert",
+    "query": "avg(last_15m):(avg:system.disk.used{customer:rogers,env:production} by {device,name} / (avg:system.disk.used{customer:rogers,env:production} by {device,name} + avg:system.disk.free{customer:rogers,env:production} by {device,name})) * 100 > 92",
+    "message": "{{#is_warning}}⚠️ Disk usage on {{name.name}} ({{device.device}}) is at {{value}}%. Start cleaning logs or expanding volume.{{/is_warning}}\n{{#is_alert}}🚨 Disk usage on {{name.name}} ({{device.device}}) is at {{value}}%. At this level, writes may begin failing. Immediate action required.{{/is_alert}}\n\n@slack-rogers-vi-alerts @pagerduty-rogers-vi",
+    "tags": ["env:production", "customer:rogers", "team:liveops", "tier:1"],
+    "options": {
+      "thresholds": {
+        "warning": 85,
+        "critical": 92
+      },
+      "notify_no_data": false,
+      "require_full_window": true,
+      "evaluation_delay": 60,
+      "include_tags": true,
+      "notify_audit": false
+    }
+  },
+
+  {
+    "_comment": "MONITOR 4 — VM Memory Usage",
+    "_setup_note": "Same formula as dashboard. Warning at 80% gives time to react before OOM killer starts evicting processes.",
+    "name": "[Rogers VI] VM Memory Usage High",
+    "type": "metric alert",
+    "query": "avg(last_10m):(max:system.mem.total{customer:rogers,env:production} by {name} - max:system.mem.usable{customer:rogers,env:production} by {name}) / max:system.mem.total{customer:rogers,env:production} by {name} * 100 > 90",
+    "message": "{{#is_warning}}⚠️ Memory usage on {{name.name}} is at {{value}}%. Check for memory leaks or unexpected load.{{/is_warning}}\n{{#is_alert}}🚨 Memory usage on {{name.name}} is at {{value}}%. OOM killer may start evicting processes. Immediate investigation required.{{/is_alert}}\n\n@slack-rogers-vi-alerts @pagerduty-rogers-vi",
+    "tags": ["env:production", "customer:rogers", "team:liveops", "tier:1"],
+    "options": {
+      "thresholds": {
+        "warning": 80,
+        "critical": 90
+      },
+      "notify_no_data": false,
+      "require_full_window": true,
+      "evaluation_delay": 60,
+      "include_tags": true,
+      "notify_audit": false
+    }
+  },
+
+  {
+    "_comment": "MONITOR 5 — VM CPU Sustained High",
+    "_setup_note": "15-minute window prevents false positives from short bursts. Applies to all Rogers VI VMs.",
+    "name": "[Rogers VI] VM CPU Utilization Sustained High",
+    "type": "metric alert",
+    "query": "avg(last_15m):avg:aws.ec2.cpuutilization{customer:rogers,env:production} by {name} > 90",
+    "message": "{{#is_warning}}⚠️ CPU on {{name.name}} has been above 80% for 15 minutes. Check for runaway processes or unexpected load spike.{{/is_warning}}\n{{#is_alert}}🚨 CPU on {{name.name}} has been above 90% for 15 minutes. Service performance is likely degraded.{{/is_alert}}\n\n@slack-rogers-vi-alerts @pagerduty-rogers-vi",
+    "tags": ["env:production", "customer:rogers", "team:liveops", "tier:1"],
+    "options": {
+      "thresholds": {
+        "warning": 80,
+        "critical": 90
+      },
+      "notify_no_data": false,
+      "require_full_window": true,
+      "evaluation_delay": 60,
+      "include_tags": true,
+      "notify_audit": false
+    }
+  },
+
+  {
+    "_comment": "MONITOR 6 — MongoDB System Load Average",
+    "_setup_note": "Load > 1.0 on system.load.15 (15-min avg) means the CPU run queue is consistently saturated. This is the threshold already marked on your dashboard widget.",
+    "name": "[Rogers VI] MongoDB System Load Critical",
+    "type": "metric alert",
+    "query": "avg(last_10m):avg:system.load.15{customer:rogers,env:production,name:*mongo*} by {name} > 1",
+    "message": "{{#is_warning}}⚠️ MongoDB host {{name.name}} system load is {{value}} (15m avg). CPU is approaching saturation — expect query latency to increase.{{/is_warning}}\n{{#is_alert}}🚨 MongoDB host {{name.name}} system load has exceeded 1.0 ({{value}}). CPU run queue is saturated. Queries will be backing up. Check for: missing indexes, lock contention, or unexpected scan operations.{{/is_alert}}\n\n@slack-rogers-vi-alerts @pagerduty-rogers-vi",
+    "tags": ["env:production", "customer:rogers", "service:mongodb", "team:liveops", "tier:1"],
+    "options": {
+      "thresholds": {
+        "warning": 0.8,
+        "critical": 1.0
+      },
+      "notify_no_data": false,
+      "require_full_window": true,
+      "evaluation_delay": 60,
+      "include_tags": true,
+      "notify_audit": false
+    }
+  },
+
+  {
+    "_comment": "MONITOR 7 — Kubernetes CPU Throttling",
+    "_setup_note": "Throttled seconds as a rate. High throttling = pods are consistently hitting their CPU limits, causing latency spikes in video processing. Tune threshold after observing your baseline.",
+    "name": "[Rogers VI] K8s CPU Throttling Elevated",
+    "type": "metric alert",
+    "query": "avg(last_10m):max:kubernetes.cpu.cfs.throttled.seconds{aws_account:321254714924} by {kube_cluster_name,kube_namespace,pod_name}.as_rate() > 0.5",
+    "message": "{{#is_warning}}⚠️ CPU throttling detected on {{pod_name.name}} in cluster {{kube_cluster_name.kube_cluster_name}}. The pod is hitting its CPU limits. Consider raising the CPU limit or investigating what's driving usage.{{/is_warning}}\n{{#is_alert}}🚨 Severe CPU throttling on {{pod_name.name}} in {{kube_cluster_name.kube_cluster_name}}. Pod is severely CPU-constrained — latency will be impacted. Raise CPU limits or scale horizontally.{{/is_alert}}\n\n@slack-rogers-vi-alerts",
+    "tags": ["env:production", "customer:rogers", "team:liveops", "tier:1"],
+    "options": {
+      "thresholds": {
+        "warning": 0.25,
+        "critical": 0.5
+      },
+      "notify_no_data": false,
+      "require_full_window": false,
+      "new_group_delay": 300,
+      "include_tags": true,
+      "notify_audit": false
+    }
+  },
+
+  {
+    "_comment": "MONITOR 8 — APM Service Error Rate",
+    "_setup_note": "IMPORTANT: Replace <YOUR_SERVICE_NAME> with the actual service name(s) from your APM service catalog. Create one copy of this monitor per product (sdf, divabo, l2v, vi). The env tag may need to be 'prd' instead of 'production' — check your APM service map.",
+    "name": "[Rogers VI] APM Service Error Rate High — <YOUR_SERVICE_NAME>",
+    "type": "query alert",
+    "query": "sum(last_5m):sum:trace.web.request.errors{env:production,service:<YOUR_SERVICE_NAME>}.as_rate() / sum:trace.web.request.hits{env:production,service:<YOUR_SERVICE_NAME>}.as_rate() * 100 > 5",
+    "message": "{{#is_warning}}⚠️ Error rate for {{service.name}} is {{value}}% — above the 1% warning threshold. Check recent deployments and downstream dependencies.{{/is_warning}}\n{{#is_alert}}🚨 Error rate for {{service.name}} has spiked to {{value}}%. Users are experiencing failures. Check APM traces for root cause: https://app.datadoghq.com/apm/services{{/is_alert}}\n\n@slack-rogers-vi-alerts @pagerduty-rogers-vi",
+    "tags": ["env:production", "customer:rogers", "team:liveops", "tier:1", "apm:true"],
+    "options": {
+      "thresholds": {
+        "warning": 1,
+        "critical": 5
+      },
+      "notify_no_data": true,
+      "no_data_timeframe": 10,
+      "require_full_window": false,
+      "include_tags": true,
+      "notify_audit": false
+    }
+  },
+
+  {
+    "_comment": "MONITOR 9 — APM Service p99 Latency",
+    "_setup_note": "IMPORTANT: Replace <YOUR_SERVICE_NAME>. Thresholds are in nanoseconds (DD APM default). 500ms = 500000000ns, 2s = 2000000000ns. Adjust per service SLA — vi (video ingest) should probably be tighter (200ms warn / 500ms crit).",
+    "name": "[Rogers VI] APM Service p99 Latency High — <YOUR_SERVICE_NAME>",
+    "type": "query alert",
+    "query": "avg(last_5m):p99:trace.web.request{env:production,service:<YOUR_SERVICE_NAME>} > 2000000000",
+    "message": "{{#is_warning}}⚠️ p99 latency for {{service.name}} is {{value}}ns ({{eval 'value/1000000'}}ms). Users on slow connections may be experiencing timeouts.{{/is_warning}}\n{{#is_alert}}🚨 p99 latency for {{service.name}} is {{value}}ns ({{eval 'value/1000000'}}ms) — exceeding 2s. Investigate slow traces in APM: https://app.datadoghq.com/apm/services{{/is_alert}}\n\n@slack-rogers-vi-alerts @pagerduty-rogers-vi",
+    "tags": ["env:production", "customer:rogers", "team:liveops", "tier:1", "apm:true"],
+    "options": {
+      "thresholds": {
+        "warning": 500000000,
+        "critical": 2000000000
+      },
+      "notify_no_data": true,
+      "no_data_timeframe": 10,
+      "require_full_window": false,
+      "include_tags": true,
+      "notify_audit": false
+    }
+  },
+
+  {
+    "_comment": "MONITOR 10 — APM Downstream Dependency Errors",
+    "_setup_note": "Catches errors on outbound calls (DB, external APIs, CDN) before they cascade into your service error rate. Replace <YOUR_SERVICE_NAME>. The span.kind:client filter scopes to outbound calls only.",
+    "name": "[Rogers VI] APM Downstream Dependency Error Rate — <YOUR_SERVICE_NAME>",
+    "type": "query alert",
+    "query": "sum(last_5m):sum:trace.web.request.errors{env:production,service:<YOUR_SERVICE_NAME>,span.kind:client}.as_rate() / sum:trace.web.request.hits{env:production,service:<YOUR_SERVICE_NAME>,span.kind:client}.as_rate() * 100 > 5",
+    "message": "{{#is_warning}}⚠️ Downstream call errors from {{service.name}} are elevated ({{value}}%). A dependency may be degraded. Check the APM service map for failing downstream spans.{{/is_warning}}\n{{#is_alert}}🚨 Downstream dependency of {{service.name}} is failing at {{value}}% error rate. This will cascade into user-facing errors if not resolved. Check APM service map: https://app.datadoghq.com/apm/map{{/is_alert}}\n\n@slack-rogers-vi-alerts @pagerduty-rogers-vi",
+    "tags": ["env:production", "customer:rogers", "team:liveops", "tier:1", "apm:true"],
+    "options": {
+      "thresholds": {
+        "warning": 2,
+        "critical": 5
+      },
+      "notify_no_data": false,
+      "require_full_window": false,
+      "include_tags": true,
+      "notify_audit": false
+    }
+  }
+]

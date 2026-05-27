@@ -12,17 +12,6 @@ Three AWS accounts, one Datadog org.
 | 388700888837 | aws-rogers-axis-torino | EKS (forge prd/stg/dev), forge MongoDB, entitlement nodes |
 | 878223349253 | aws-rogers-discovery-axis | ISL OData EC2 fleet, ESB, DC, RDGW, staging MongoDB |
 
-## Products / Teams
-
-| Product | Team | What it does |
-|---------|------|-------------|
-| AXIS-BE | AXIS - InfraOps | Backend services (ISL-OData, Rocket, Slingshot, Shain, Geolocation…) |
-| VOLT | DIGITAL - InfraOps | CMS platform, Entitlement service |
-| FORGE | DIGITAL - InfraOps | Digital backoffice (Guishell, Distribution API…) |
-| DivaBO | DIGITAL - InfraOps | DivaBO platform on EKS (rogers-divabo-prd-cluster) |
-| VI | VIDEO Integration Dev Team | Video Integration services on EKS (rogers-vi-prd-cluster) |
-| 3rd Party | VIDEO Engineering Team | MediaConvert, MediaLive, MediaConnect, MediaTailor, Castlabs |
-
 ## Folder Map
 
 ```
@@ -44,14 +33,6 @@ RogersSN/
 
 - **Manager's alarm checklist (Excel):**
   `/Users/bardia.asadi/Library/CloudStorage/OneDrive-SharedLibraries-DeltatreS.p.A/SRE - Documents/Alarm_Checklist RogersSN.xlsx`
-
-## Datadog
-
-- **Query to find all Sportsnet+ monitors:**
-  ```
-  (tag:"customer:rogers" AND (tag:"app_owner:VI" OR tag:"app_owner:DivaBO")) OR tag:"customer:rogers-diva" OR tag:"project:rogers-diva" OR tag:"project:axis-rogers-diva" OR tag:"axis.project_code:rogers-diva" OR tag:"project:axis-rogers"
-  ```
-- Tags are inconsistent across teams — this query is the result of significant investigation (see `Monitoring/current-state.md`)
 
 ## Note Conventions
 

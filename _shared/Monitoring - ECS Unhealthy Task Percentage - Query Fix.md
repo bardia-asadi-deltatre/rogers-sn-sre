@@ -4,7 +4,7 @@
 
 On May 26, a P1 alert fired for `rogers-diva-rocket-api`:
 
-> **[P1] [Recovered] ROGERS-DIVA [AXIS] [INFRAOPS] Percentage of Unhealthy ECS Task**
+> **P1 Recovered ROGERS-DIVA AXIS INFRAOPS Percentage of Unhealthy ECS Task
 
 The alert lasted ~9 minutes (23:36 → 23:45 UTC-4). The monitor is designed to catch when a high percentage of ECS tasks behind the ALB are unhealthy.
 
@@ -28,8 +28,7 @@ This inflates the percentage. Example: 1 unhealthy + 4 healthy → reports 25% i
 **2. Misleading description text**
 The alert message body said *"Unhealthy hosts detected > 0"* but the actual threshold is `> 20` (percent). Confusing for anyone triaging.
 
-**3. "Hosts" terminology**
-The ALB metric uses the word "hosts" but in ECS context these are **tasks** registered as ALB targets, not EC2 nodes. The monitor name already says "ECS Task" which is correct.
+
 
 ## The Fix
 

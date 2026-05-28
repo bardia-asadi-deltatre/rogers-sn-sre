@@ -17,11 +17,11 @@ This note summarizes the observations from the traces reviewed on May 25 and May
 
 ---
 
-## Observations from APM traces
+## Observations from [[APM]] traces
 
 For the traces reviewed, each request to `GET /api/page?path=/` appears to trigger multiple parallel calls to ISL (`production-isl.d3-rgr-diva.com:443`).
 
-One thing that stood out consistently is that a significant portion of execution time appears to be spent establishing TCP connections rather than processing responses.
+One thing that stood out consistently is that a significant portion of execution time appears to be spent establishing [[TCP connections]] rather than processing responses.
 
 Examples from the flame graphs reviewed:
 

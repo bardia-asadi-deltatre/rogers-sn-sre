@@ -11,6 +11,7 @@ clustername:production-isl-odata
 
 The Datadog query used:
 
+[[system.disk.in_use]]
 ```
 avg:system.disk.in_use{project:*rogers*,env:production,service:rogers-diva-isl-odata-api} by {host}
 ```
